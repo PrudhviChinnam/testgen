@@ -1,0 +1,19 @@
+name: AutoTestify CI
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  trigger-autotestify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger AutoTestify Tests
+        run: |
+          PAYLOAD='{"ref":"${{ github.ref }}","repository":{"full_name":"${{ github.repository }}"},"head_commit":{"id":"${{ github.sha }}","message":"${{ github.event.head_commit.message }}"},"sender":{"login":"${{ github.actor }}"}}'
+          SIGNATURE=$(echo -n "$PAYLOAD" | openssl dgst -sha256 -hmac "${{ secrets.AUTOTESTIFY_WEBHOOK_SECRET }}" | sed 's/.*= //')
+          curl -s -f -X POST "${{ secrets.AUTOTESTIFY_WEBHOOK_URL }}/api/webhooks/github" \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: sha256=$SIGNATURE" \
+            -d "$PAYLOAD"
